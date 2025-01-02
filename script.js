@@ -1,172 +1,200 @@
-// Gantikan dengan URL Web App Google Apps Script anda
+/******************************************/
+/*  Gantikan dengan URL Web App Anda      */
+/******************************************/
 const API_URL = 'https://script.google.com/macros/s/AKfycbzmpkvkLk6BeCgS1Os3vPA9Tw59RPGZSI59Ijl8rU0m0C1S38F0576V1sGDAbPPwZw/exec';
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Tetapkan tarikh default ke hari ini
-  setDefaultDate();
+/******************************************/
+/*  Kata Laluan Ringkas                   */
+/******************************************/
+const SIMPLE_PASSWORD = '115317';
 
-  // Tetapkan masa default (waktu semasa) pada input Waktu Mula & Waktu Tamat
-  setDefaultTime();
+/******************************************/
+/*  Fungsi Overlay Kata Laluan + localStorage
+    Supaya kata laluan dimasukkan sekali sahaja  */
+/******************************************/
+function initPasswordOverlay() {
+  const overlay = document.getElementById('password-overlay');
+  if (!overlay) return;  // Jika tiada overlay di halaman ini
 
-  // Kemas kini jadual apabila laman dimuatkan
-  fetchData();
+  const mainContainer = document.getElementById('main-container');
+  const passwordInput = document.getElementById('password-input');
+  const submitBtn = document.getElementById('password-submit');
+  const errorEl = document.getElementById('password-error');
 
-  const form = document.getElementById('data-form');
-  form.addEventListener('submit', handleFormSubmit);
+  // Jika 'loggedIn' sudah 'true', teruskan tanpa overlay
+  if (localStorage.getItem('loggedIn') === 'true') {
+    overlay.style.display = 'none';
+    if (mainContainer) mainContainer.style.display = 'block';
+    return;
+  }
 
-  const deleteAllBtn = document.getElementById('delete-all');
-  deleteAllBtn.addEventListener('click', handleDeleteAll);
-
-  // Elemen modal
-  const editModal = document.getElementById('edit-modal');
-  const closeModal = document.querySelector('.close');
-  const editForm = document.getElementById('edit-form');
-
-  // Tutup modal apabila 'x' diklik
-  closeModal.onclick = function() {
-    editModal.style.display = 'none';
-  };
-
-  // Tutup modal apabila klik di luar kandungan modal
-  window.onclick = function(event) {
-    if (event.target == editModal) {
-      editModal.style.display = 'none';
+  // Jika belum, tunggu input
+  submitBtn.addEventListener('click', () => {
+    const val = passwordInput.value.trim();
+    if (val === SIMPLE_PASSWORD) {
+      localStorage.setItem('loggedIn', 'true');
+      overlay.style.display = 'none';
+      if (mainContainer) mainContainer.style.display = 'block';
+    } else {
+      errorEl.textContent = 'Kata laluan salah.';
+      passwordInput.value = '';
+      passwordInput.focus();
     }
-  };
-
-  // Tangani penghantaran borang edit
-  editForm.addEventListener('submit', handleEditSubmit);
-
-  // Butang 'Masuk' dan 'Balik'
-  const btnMasuk = document.getElementById('btn-masuk');
-  const btnBalik = document.getElementById('btn-balik');
-
-  btnMasuk.addEventListener('click', handleMasukClick);
-  btnBalik.addEventListener('click', handleBalikClick);
-});
-
-/**
- * Mengatur tarikh default ke hari ini (YYYY-MM-DD)
- */
-function setDefaultDate() {
-  const tarikhInput = document.getElementById('tarikh');
-  const today = new Date().toISOString().split('T')[0];
-  tarikhInput.value = today;
-}
-
-/**
- * Mengatur masa default (waktu semasa) untuk input time (format HH:MM)
- */
-function setDefaultTime() {
-  const waktuMulaInput = document.getElementById('waktuMula');
-  const waktuTamatInput = document.getElementById('waktuTamat');
-  const currentTime = getCurrentTimeString();
-
-  waktuMulaInput.value = currentTime;
-  waktuTamatInput.value = currentTime;
-}
-
-/**
- * Memperoleh masa semasa dalam format HH:MM
- */
-function getCurrentTimeString() {
-  const now = new Date();
-  let hours = now.getHours();
-  let minutes = now.getMinutes();
-
-  if (hours < 10) hours = '0' + hours;
-  if (minutes < 10) minutes = '0' + minutes;
-
-  return `${hours}:${minutes}`;
-}
-
-/**
- * Mengambil data menggunakan JSONP (doGet) dari Apps Script
- */
-function fetchData() {
-  const script = document.createElement('script');
-  const callbackName = 'handleGetData_' + Date.now(); // Pastikan nama callback unik
-
-  // Definisikan fungsi callback global
-  window[callbackName] = function(response) {
-    if (response.status === 'Invalid action or no action specified') {
-      console.error('Invalid action or no action specified');
-      showNotification('Permintaan data tidak sah.', 'error');
-      return;
-    }
-    displayTotal(response.total);
-    populateTable(response.data);
-    toggleDataContainer(response.data && response.data.length > 0);
-
-    // Bersihkan tag script dan callback selepas selesai
-    document.head.removeChild(script);
-    delete window[callbackName];
-  };
-
-  // Buat tag script dengan callback JSONP
-  script.src = `${API_URL}?action=getData&callback=${callbackName}`;
-  document.head.appendChild(script);
-}
-
-/**
- * Memaparkan jumlah ringgit
- */
-function displayTotal(total) {
-  document.getElementById('total').textContent = total || 0;
-}
-
-/**
- * Memaparkan data dalam jadual
- */
-function populateTable(data) {
-  const tbody = document.querySelector('#data-table tbody');
-  tbody.innerHTML = '';
-
-  data.forEach((row, index) => {
-    // row = [Tarikh, Nama, Kategori, WaktuMula, WaktuTamat, ...]
-    const [tarikh, nama, kategori, waktuMula, waktuTamat] = row; 
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td data-label="Tarikh">${escapeHTML(tarikh)}</td>
-      <td data-label="Nama">${escapeHTML(nama)}</td>
-      <td data-label="Kategori">${escapeHTML(kategori)}</td>
-      <td data-label="Waktu Mula">${escapeHTML(waktuMula)}</td>
-      <td data-label="Waktu Tamat">${escapeHTML(waktuTamat)}</td>
-      <td data-label="Tindakan">
-        <button class="edit-btn" 
-          onclick="openEditModal(${index + 2}, '${escapeHTML(tarikh)}', '${escapeHTML(nama)}', '${escapeHTML(kategori)}', '${escapeHTML(waktuMula)}', '${escapeHTML(waktuTamat)}')">
-          Edit
-        </button>
-        <button class="delete-btn" onclick="deleteRow(${index + 2})">Padam</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
   });
 }
 
-/**
- * Elakkan isu injeksi HTML
- */
+/******************************************/
+/*  Fungsi Bantuan (Notifikasi, dsb.)     */
+/******************************************/
+/** Papar notifikasi selama 3s */
+function showNotification(message, type) {
+  const container = document.getElementById('notification-container');
+  if (!container) return;
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  container.appendChild(notification);
+  setTimeout(() => notification.remove(), 3000);
+}
+
+/** Elak injeksi HTML */
 function escapeHTML(str) {
   if (!str) return '';
   return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
-/**
- * Menangani papar/sorok bahagian jadual
- */
-function toggleDataContainer(show) {
-  const dataContainer = document.getElementById('data-container');
-  dataContainer.style.display = show ? 'block' : 'none';
+/** Disable butang & tukar teks */
+function disableButton(btnId, text = 'Masa telah disetkan') {
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.classList.add('disabled-btn');
+    btn.disabled = true;
+    btn.textContent = text;
+  }
+}
+
+/******************************************/
+/*   1) FUNGSI DI HALAMAN UTAMA (index.html)  */
+/******************************************/
+function initIndexPage() {
+  // Inisialisasi overlay password
+  initPasswordOverlay();
+
+  const mainContainer = document.getElementById('main-container');
+  if (!mainContainer) return;
+
+  // Set tarikh & masa default
+  setDefaultDate();
+  setDefaultTime();
+
+  // Ambil jumlah ringgit (fetchTotal)
+  fetchTotal();
+
+  // Periksa hari ini (Masuk/Balik)
+  checkTodayStatus();
+
+  // Borang "Tambah"
+  const form = document.getElementById('data-form');
+  form.addEventListener('submit', handleFormSubmit);
+
+  // Butang "Masuk" & "Balik"
+  const btnMasuk = document.getElementById('btn-masuk');
+  const btnBalik = document.getElementById('btn-balik');
+
+  btnMasuk.addEventListener('click', handleMasukClick);
+  btnBalik.addEventListener('click', handleBalikClick);
+}
+
+/** Set tarikh = hari ini (YYYY-MM-DD) */
+function setDefaultDate() {
+  const tarikhInput = document.getElementById('tarikh');
+  if (!tarikhInput) return;
+  const today = new Date().toISOString().split('T')[0];
+  tarikhInput.value = today;
+}
+
+/** Set masa semasa (HH:MM) */
+function setDefaultTime() {
+  const now = new Date();
+  let hh = now.getHours();
+  let mm = now.getMinutes();
+  if (hh < 10) hh = '0' + hh;
+  if (mm < 10) mm = '0' + mm;
+  const currentTime = `${hh}:${mm}`;
+
+  const waktuMulaInput = document.getElementById('waktuMula');
+  const waktuTamatInput = document.getElementById('waktuTamat');
+  if (waktuMulaInput) waktuMulaInput.value = currentTime;
+  if (waktuTamatInput) waktuTamatInput.value = currentTime;
 }
 
 /**
- * Menangani penambahan data melalui borang "Tambah"
+ * Ambil "total" dari Google Sheets (doGet => getData) 
+ * dan paparkan sebagai "RM X.XX"
  */
-function handleFormSubmit(event) {
-  event.preventDefault();
+function fetchTotal() {
+  const script = document.createElement('script');
+  const callbackName = 'handleGetDataIndex_' + Date.now();
 
+  window[callbackName] = function(response) {
+    document.head.removeChild(script);
+    delete window[callbackName];
+
+    if (!response || response.status === 'Invalid action or no action specified') {
+      showNotification('Gagal mengambil jumlah ringgit.', 'error');
+      return;
+    }
+
+    const totalEl = document.getElementById('total');
+    if (totalEl) {
+      const totalValue = parseFloat(response.total) || 0;
+      // Format jadi "RM 815.30"
+      totalEl.textContent = 'RM ' + totalValue.toFixed(2);
+    }
+  };
+
+  // JSONP
+  script.src = `${API_URL}?action=getData&callback=${callbackName}`;
+  document.head.appendChild(script);
+}
+
+/**
+ * Periksa tarikh hari ini di Apps Script 
+ * => Kunci butang Masuk/Balik + isikan input time jika sudah ada
+ */
+function checkTodayStatus() {
+  const today = new Date().toISOString().split('T')[0];
+  const payload = new URLSearchParams();
+  payload.append('action', 'checkTodayStatus');
+  payload.append('tarikh', today);
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString()
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (!result || result.status !== 'Ok') return;
+      // { hasStart, hasEnd, startTime, endTime }
+
+      if (result.hasStart && result.startTime) {
+        const waktuMulaInput = document.getElementById('waktuMula');
+        if (waktuMulaInput) waktuMulaInput.value = result.startTime;
+        disableButton('btn-masuk');
+      }
+      if (result.hasEnd && result.endTime) {
+        const waktuTamatInput = document.getElementById('waktuTamat');
+        if (waktuTamatInput) waktuTamatInput.value = result.endTime;
+        disableButton('btn-balik');
+      }
+    })
+    .catch(err => console.log('checkTodayStatus error:', err));
+}
+
+/** Borang "Tambah" */
+function handleFormSubmit(e) {
+  e.preventDefault();
   const tarikh = document.getElementById('tarikh').value;
   const waktuMula = document.getElementById('waktuMula').value;
   const waktuTamat = document.getElementById('waktuTamat').value;
@@ -179,42 +207,34 @@ function handleFormSubmit(event) {
 
   fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => response.json())
-    .then(result => {
-      // Sentiasa 'Berjaya dihantar' tanpa ralat
+    .then(() => {
       showNotification('Berjaya dihantar', 'success');
-
-      // Reset borang
+      // Reset
       document.getElementById('data-form').reset();
       setDefaultDate();
       setDefaultTime();
-      fetchData();
+      // Periksa semula status + refresh total
+      checkTodayStatus();
+      fetchTotal();
     })
-    .catch(error => {
-      // Abaikan ralat di frontend
-      console.error('Error:', error);
+    .catch(() => {
       showNotification('Berjaya dihantar', 'success');
-      fetchData();
+      checkTodayStatus();
+      fetchTotal();
     });
 }
 
-/**
- * Menangani klik butang 'Masuk'
- */
+/** Klik "Masuk" */
 function handleMasukClick() {
   const tarikh = document.getElementById('tarikh').value;
   if (!tarikh) {
     showNotification('Sila pilih tarikh terlebih dahulu.', 'error');
     return;
   }
-
-  const waktuMulaInput = document.getElementById('waktuMula');
-  const waktuMula = waktuMulaInput.value;
+  const waktuMula = document.getElementById('waktuMula').value;
 
   const payload = new URLSearchParams();
   payload.append('action', 'recordStartTime');
@@ -226,45 +246,26 @@ function handleMasukClick() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => response.json())
-    .then(result => {
-      // Sentiasa papar 'Masa Masuk berjaya direkodkan'
+    .then(() => {
       showNotification('Masa Masuk berjaya direkodkan.', 'success');
-      
-      // Tukar rupa butang Masuk -> kelabu, teks "Masa telah disetkan", disable
-      const btnMasuk = document.getElementById('btn-masuk');
-      btnMasuk.classList.add('disabled-btn');
-      btnMasuk.disabled = true;
-      btnMasuk.textContent = 'Masa telah disetkan';
-
-      fetchData();
+      disableButton('btn-masuk');
+      fetchTotal();
     })
-    .catch(error => {
-      // Abaikan ralat
-      console.error('Error:', error);
+    .catch(() => {
       showNotification('Masa Masuk berjaya direkodkan.', 'success');
-
-      const btnMasuk = document.getElementById('btn-masuk');
-      btnMasuk.classList.add('disabled-btn');
-      btnMasuk.disabled = true;
-      btnMasuk.textContent = 'Masa telah disetkan';
-
-      fetchData();
+      disableButton('btn-masuk');
+      fetchTotal();
     });
 }
 
-/**
- * Menangani klik butang 'Balik'
- */
+/** Klik "Balik" */
 function handleBalikClick() {
   const tarikh = document.getElementById('tarikh').value;
   if (!tarikh) {
     showNotification('Sila pilih tarikh terlebih dahulu.', 'error');
     return;
   }
-
-  const waktuTamatInput = document.getElementById('waktuTamat');
-  const waktuTamat = waktuTamatInput.value;
+  const waktuTamat = document.getElementById('waktuTamat').value;
 
   const payload = new URLSearchParams();
   payload.append('action', 'recordEndTime');
@@ -276,36 +277,108 @@ function handleBalikClick() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => response.json())
-    .then(result => {
-      // Sentiasa papar 'Masa Balik berjaya direkodkan'
+    .then(() => {
       showNotification('Masa Balik berjaya direkodkan.', 'success');
+      disableButton('btn-balik');
+      fetchTotal();
+    })
+    .catch(() => {
+      showNotification('Masa Balik berjaya direkodkan.', 'success');
+      disableButton('btn-balik');
+      fetchTotal();
+    });
+}
 
-      // Tukar rupa butang Balik -> kelabu, teks "Masa telah disetkan", disable
-      const btnBalik = document.getElementById('btn-balik');
-      btnBalik.classList.add('disabled-btn');
-      btnBalik.disabled = true;
-      btnBalik.textContent = 'Masa telah disetkan';
+/******************************************/
+/*   2) FUNGSI DI HALAMAN REKOD (rekod.html)  */
+/******************************************/
+function initRekodPage() {
+  initPasswordOverlay();
 
+  const mainContainer = document.getElementById('main-container');
+  if (!mainContainer) return;
+
+  // Paparkan jadual
+  fetchData();
+
+  // Butang "Padam Semua"
+  const deleteAllBtn = document.getElementById('delete-all');
+  deleteAllBtn.addEventListener('click', handleDeleteAll);
+
+  // Inisialisasi Modal Edit
+  initEditModal();
+}
+
+/** Ambil data (doGet => getData) guna JSONP & populate jadual */
+function fetchData() {
+  const script = document.createElement('script');
+  const callbackName = 'handleGetDataRekod_' + Date.now();
+
+  window[callbackName] = (response) => {
+    document.head.removeChild(script);
+    delete window[callbackName];
+
+    if (!response || response.status === 'Invalid action or no action specified') {
+      showNotification('Permintaan data tidak sah.', 'error');
+    } else {
+      populateTable(response.data || []);
+    }
+  };
+
+  script.src = `${API_URL}?action=getData&callback=${callbackName}`;
+  document.head.appendChild(script);
+}
+
+/** Masukkan data ke jadual HTML */
+function populateTable(data) {
+  const tbody = document.querySelector('#data-table tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  data.forEach((row, index) => {
+    const [tarikh, nama, kategori, waktuMula, waktuTamat] = row;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Tarikh">${escapeHTML(tarikh)}</td>
+      <td data-label="Nama">${escapeHTML(nama)}</td>
+      <td data-label="Kategori">${escapeHTML(kategori)}</td>
+      <td data-label="Waktu Mula">${escapeHTML(waktuMula)}</td>
+      <td data-label="Waktu Tamat">${escapeHTML(waktuTamat)}</td>
+      <td data-label="Tindakan">
+        <button class="edit-btn"
+          onclick="openEditModal(${index + 2}, '${escapeHTML(tarikh)}', '${escapeHTML(nama)}', '${escapeHTML(kategori)}', '${escapeHTML(waktuMula)}', '${escapeHTML(waktuTamat)}')">
+          Edit
+        </button>
+        <button class="delete-btn" onclick="deleteRow(${index + 2})">Padam</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/** Padam semua data */
+function handleDeleteAll() {
+  if (!confirm('Anda pasti mahu padam semua data?')) return;
+
+  const payload = new URLSearchParams();
+  payload.append('action', 'deleteAll');
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString()
+  })
+    .then(() => {
+      showNotification('Semua data berjaya dipadam', 'success');
       fetchData();
     })
-    .catch(error => {
-      // Abaikan ralat
-      console.error('Error:', error);
-      showNotification('Masa Balik berjaya direkodkan.', 'success');
-
-      const btnBalik = document.getElementById('btn-balik');
-      btnBalik.classList.add('disabled-btn');
-      btnBalik.disabled = true;
-      btnBalik.textContent = 'Masa telah disetkan';
-
+    .catch(() => {
+      showNotification('Semua data berjaya dipadam', 'success');
       fetchData();
     });
 }
 
-/**
- * Menangani penghapusan satu baris
- */
+/** Padam satu baris */
 function deleteRow(row) {
   if (!confirm('Anda pasti mahu padam baris ini?')) return;
 
@@ -318,53 +391,58 @@ function deleteRow(row) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => response.json())
-    .then(result => {
-      // Sentiasa 'Berjaya dipadam'
+    .then(() => {
       showNotification('Berjaya dipadam', 'success');
       fetchData();
     })
-    .catch(error => {
-      // Abaikan ralat
-      console.error('Error:', error);
+    .catch(() => {
       showNotification('Berjaya dipadam', 'success');
       fetchData();
     });
 }
 
-/**
- * Menangani penghapusan semua data
- */
-function handleDeleteAll() {
-  if (!confirm('Anda pasti mahu padam semua data?')) return;
+/******************************************/
+/*  Modal Edit (rekod.html)               */
+/******************************************/
+function initEditModal() {
+  const editModal = document.getElementById('edit-modal');
+  if (!editModal) return;
 
-  const payload = new URLSearchParams();
-  payload.append('action', 'deleteAll');
+  const closeModal = editModal.querySelector('.close');
+  closeModal.onclick = () => editModal.style.display = 'none';
 
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: payload.toString()
-  })
-    .then(response => response.json())
-    .then(result => {
-      // Sentiasa 'Semua data berjaya dipadam'
-      showNotification('Semua data berjaya dipadam', 'success');
-      fetchData();
-    })
-    .catch(error => {
-      // Abaikan ralat
-      console.error('Error:', error);
-      showNotification('Semua data berjaya dipadam', 'success');
-      fetchData();
-    });
+  window.onclick = (event) => {
+    if (event.target === editModal) {
+      editModal.style.display = 'none';
+    }
+  };
+
+  const editForm = document.getElementById('edit-form');
+  editForm.addEventListener('submit', handleEditSubmit);
 }
 
-/**
- * Menangani penghantaran borang Edit
- */
-function handleEditSubmit(event) {
-  event.preventDefault();
+/** Buka modal Edit */
+function openEditModal(row, tarikh, nama, kategori, waktuMula, waktuTamat) {
+  const editModal = document.getElementById('edit-modal');
+  editModal.style.display = 'block';
+
+  document.getElementById('edit-row').value = row;
+
+  // Ubah 'DD/MM/YYYY' -> 'YYYY-MM-DD'
+  const tarikhParts = tarikh.split('/');
+  if (tarikhParts.length === 3) {
+    document.getElementById('edit-tarikh').value = `${tarikhParts[2]}-${tarikhParts[1]}-${tarikhParts[0]}`;
+  } else {
+    document.getElementById('edit-tarikh').value = '';
+  }
+
+  document.getElementById('edit-waktuMula').value = waktuMula;
+  document.getElementById('edit-waktuTamat').value = waktuTamat;
+}
+
+/** Submit Edit */
+function handleEditSubmit(e) {
+  e.preventDefault();
 
   const row = document.getElementById('edit-row').value;
   const tarikh = document.getElementById('edit-tarikh').value;
@@ -383,60 +461,14 @@ function handleEditSubmit(event) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => response.json())
-    .then(result => {
-      // Sentiasa 'Berjaya diedit'
+    .then(() => {
       showNotification('Berjaya diedit', 'success');
       document.getElementById('edit-modal').style.display = 'none';
       fetchData();
     })
-    .catch(error => {
-      // Abaikan ralat
-      console.error('Error:', error);
+    .catch(() => {
       showNotification('Berjaya diedit', 'success');
       document.getElementById('edit-modal').style.display = 'none';
       fetchData();
     });
-}
-
-/**
- * Membuka modal Edit
- */
-function openEditModal(row, tarikh, nama, kategori, waktuMula, waktuTamat) {
-  const modal = document.getElementById('edit-modal');
-  const editRow = document.getElementById('edit-row');
-  const editTarikh = document.getElementById('edit-tarikh');
-  const editWaktuMula = document.getElementById('edit-waktuMula');
-  const editWaktuTamat = document.getElementById('edit-waktuTamat');
-
-  editRow.value = row;
-
-  // Convert Tarikh 'DD/MM/YYYY' -> 'YYYY-MM-DD' (jika format betul)
-  const tarikhParts = tarikh.split('/');
-  if (tarikhParts.length === 3) {
-    editTarikh.value = `${tarikhParts[2]}-${tarikhParts[1]}-${tarikhParts[0]}`;
-  } else {
-    editTarikh.value = '';
-  }
-
-  editWaktuMula.value = waktuMula;
-  editWaktuTamat.value = waktuTamat;
-
-  modal.style.display = 'block';
-}
-
-/**
- * Menunjukkan notifikasi
- */
-function showNotification(message, type) {
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.textContent = message;
-
-  const container = document.getElementById('notification-container');
-  container.appendChild(notification);
-
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
 }

@@ -3,19 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jadual Amirul</title>
-  <!-- Pautan ke fail CSS -->
+  <title>Jadual Amirul - Utama</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="container">
+  <!-- OVERLAY KATA LALUAN -->
+  <div id="password-overlay">
+    <div class="password-container">
+      <h2>Masukkan Kata Laluan</h2>
+      <input 
+        type="password" 
+        id="password-input" 
+        placeholder="Kata laluan" 
+        autocomplete="off" 
+      />
+      <button id="password-submit">Masuk</button>
+      <p id="password-error" class="error-message"></p>
+    </div>
+  </div>
+  <!-- /OVERLAY -->
+
+  <div class="container" id="main-container" style="display: none;">
     <header>
-      <h1>Jadual Amirul</h1>
+      <h1>Rekod Jadual Amirul</h1>
     </header>
 
     <!-- Paparan Jumlah Ringgit -->
+    <!-- Ubah suai bahagian ini:
+         Letakkan "Jumlah Ringgit:" di HTML,
+         sementara "RM" + nilai dua perpuluhan
+         akan diisi oleh JavaScript. -->
     <section id="total-container">
-      <h2>Jumlah Ringgit: RM <span id="total">0</span></h2>
+      <h2>Total: <span id="total"></span></h2>
     </section>
 
     <!-- Bahagian Borang -->
@@ -55,60 +74,20 @@
       </form>
     </section>
 
-    <!-- Paparan Jadual -->
-    <section id="data-container">
-      <h2>Data Jadual</h2>
-      <table id="data-table">
-        <thead>
-          <tr>
-            <th>Tarikh</th>
-            <th>Nama</th>
-            <th>Kategori</th>
-            <th>Waktu Mula</th>
-            <th>Waktu Tamat</th>
-            <th>Tindakan</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Data akan dipaparkan di sini -->
-        </tbody>
-      </table>
-      <button id="delete-all">Padam Semua</button>
+    <!-- Pautan ke "halaman rekod" -->
+    <section>
+      <a href="rekod.html" class="link-btn">Lihat Rekod</a>
     </section>
   </div>
 
-  <!-- Modal Edit -->
-  <div id="edit-modal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Edit Maklumat</h2>
-      <form id="edit-form">
-        <input type="hidden" id="edit-row" name="row" />
-
-        <div class="form-group">
-          <label for="edit-tarikh">Tarikh:</label>
-          <input type="date" id="edit-tarikh" name="tarikh" required />
-        </div>
-
-        <div class="form-group">
-          <label for="edit-waktuMula">Waktu Mula:</label>
-          <input type="time" id="edit-waktuMula" name="waktuMula" required />
-        </div>
-
-        <div class="form-group">
-          <label for="edit-waktuTamat">Waktu Tamat:</label>
-          <input type="time" id="edit-waktuTamat" name="waktuTamat" required />
-        </div>
-
-        <button type="submit">Simpan Perubahan</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Kontainer Notifikasi -->
+  <!-- Notifikasi -->
   <div id="notification-container"></div>
 
   <!-- Pautan ke fail JavaScript -->
   <script src="script.js"></script>
+  <script>
+    // Panggil initIndexPage() apabila DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', initIndexPage);
+  </script>
 </body>
 </html>

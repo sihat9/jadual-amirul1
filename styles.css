@@ -1,10 +1,11 @@
-/* Reset CSS untuk konsistensi */
+/* RESET CSS */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* GAYA ASAS LAMAN */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f4f6f9;
@@ -27,6 +28,7 @@ header h1 {
   color: #2c3e50;
 }
 
+/* BAHAGIAN-BAHAGIAN */
 section {
   background-color: #fff;
   padding: 25px 30px;
@@ -49,6 +51,7 @@ section {
   padding-bottom: 10px;
 }
 
+/* FORM DAN INPUT */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -66,12 +69,29 @@ section {
   border-radius: 4px;
 }
 
-/* Kumpulan input (input + button) dalam satu baris */
+/* GABUNGAN INPUT + BUTANG (MASUK/BALIK) */
 .input-group {
   display: flex;
   align-items: center;
 }
 
+/* BUTANG UMUM */
+button {
+  padding: 12px 25px;
+  background-color: #2980b9;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #1f6391;
+}
+
+/* BUTANG ACTION (MASUK, BALIK) */
 .action-btn {
   margin-left: 10px;
   padding: 10px 15px;
@@ -88,35 +108,38 @@ section {
   background-color: #1e8449;
 }
 
+/* BUTANG BALIK (BIRU) */
 .balik-btn {
-  background-color: #2980b9; /* Biru */
+  background-color: #2980b9;
 }
 
 .balik-btn:hover {
   background-color: #1f6391;
 }
 
-/* Kelas tambahan apabila butang dimatikan selepas set masa */
+/* BUTANG TELAH DISABLE (MASA DISSETKAN) */
 .disabled-btn {
   background-color: #7f8c8d !important; /* Kelabu */
   cursor: not-allowed !important;
 }
 
-button {
+/* LINK-BTN (PAUTAN) */
+.link-btn {
+  display: inline-block;
   padding: 12px 25px;
-  background-color: #2980b9;
-  color: white;
-  border: none;
-  cursor: pointer;
+  background-color: #16a085; /* Warna hijau-biru */
+  color: #fff;
   border-radius: 4px;
-  font-size: 1em;
+  text-decoration: none;
   transition: background-color 0.3s ease;
+  margin-top: 20px;
 }
 
-button:hover {
-  background-color: #1f6391;
+.link-btn:hover {
+  background-color: #12806a;
 }
 
+/* BUTANG DELETE ALL */
 #delete-all {
   background-color: #c0392b;
   width: 100%;
@@ -127,6 +150,7 @@ button:hover {
   background-color: #a93226;
 }
 
+/* JADUAL */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -176,25 +200,25 @@ tr:nth-child(even) {
   background-color: #1e8449;
 }
 
-/* Modal Styles */
+/* MODAL */
 .modal {
   display: none; /* Hidden by default */
-  position: fixed; /* Stay in place */
-  z-index: 1001; /* Sit on top */
+  position: fixed; 
+  z-index: 1001; 
   left: 0;
   top: 0;
-  width: 100%; /* Full width */
-  height: 100%; /* Full height */
-  overflow: auto; /* Enable scroll if needed */
-  background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+  width: 100%; 
+  height: 100%; 
+  overflow: auto; 
+  background-color: rgba(0,0,0,0.5);
 }
 
 .modal-content {
   background-color: #fefefe;
-  margin: 10% auto; /* 10% from the top and centered */
+  margin: 10% auto; 
   padding: 20px;
   border: 1px solid #888;
-  width: 50%; /* Could be more or less, depending on screen size */
+  width: 50%; 
   border-radius: 8px;
   position: relative;
 }
@@ -224,7 +248,7 @@ tr:nth-child(even) {
   background-color: #1e8449;
 }
 
-/* Notification Styles */
+/* NOTIFIKASI */
 #notification-container {
   position: fixed;
   top: 20px;
@@ -260,7 +284,62 @@ tr:nth-child(even) {
   to { top: 0; opacity: 0; }
 }
 
-/* Responsif */
+/* OVERLAY KATA LALUAN */
+#password-overlay {
+  position: fixed;
+  z-index: 9999; 
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f4f6f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.password-container {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  text-align: center;
+  max-width: 300px;
+  width: 80%;
+}
+
+.password-container h2 {
+  margin-bottom: 20px;
+}
+
+.password-container input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.password-container button {
+  padding: 10px;
+  width: 100%;
+  background-color: #2980b9;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.password-container button:hover {
+  background-color: #1f6391;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin-top: 10px;
+}
+
+/* RESPONSIF UNTUK SKRIN KECIL */
 @media (max-width: 768px) {
   header h1 {
     font-size: 2em;
