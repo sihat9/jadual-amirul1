@@ -63,12 +63,28 @@ function escapeHTML(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
-/** Disable butang & tukar teks */
+/**
+ * disableButton(btnId):
+ *  - Jadikan butang kelabu & ubah teks ke "Masa telah disetkan" (lalai)
+ */
 function disableButton(btnId, text = 'Masa telah disetkan') {
   const btn = document.getElementById(btnId);
   if (btn) {
     btn.classList.add('disabled-btn');
     btn.disabled = true;
+    btn.textContent = text;
+  }
+}
+
+/**
+ * enableButton(btnId, text):
+ *  - Jadikan butang boleh diklik & ubah teks
+ */
+function enableButton(btnId, text) {
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.classList.remove('disabled-btn');
+    btn.disabled = false;
     btn.textContent = text;
   }
 }
@@ -83,6 +99,10 @@ function initIndexPage() {
   const mainContainer = document.getElementById('main-container');
   if (!mainContainer) return;
 
+  // Dapatkan butang & set disabled = true (lalai) dgn teks "Sedang dimuat..."
+  disableButton('btn-masuk', 'Sedang dimuat...');
+  disableButton('btn-balik', 'Sedang dimuat...');
+
   // Set tarikh & masa default
   setDefaultDate();
   setDefaultTime();
@@ -90,27 +110,34 @@ function initIndexPage() {
   // Ambil jumlah ringgit (fetchTotal)
   fetchTotal();
 
-  // Periksa hari ini (Masuk/Balik)
-  checkTodayStatus();
+  // Semak tarikh semasa
+  const tarikhInput = document.getElementById('tarikh');
+  checkSelectedDateStatus(tarikhInput.value);
+
+  // Apabila user ubah tarikh, semak semula
+  tarikhInput.addEventListener('change', (e) => {
+    setDefaultTime();
+    // Re-disable butang semasa loading data
+    disableButton('btn-masuk', 'Sedang dimuat...');
+    disableButton('btn-balik', 'Sedang dimuat...');
+    // Semak tarikh baru
+    checkSelectedDateStatus(e.target.value);
+  });
 
   // Borang "Tambah"
   const form = document.getElementById('data-form');
   form.addEventListener('submit', handleFormSubmit);
 
   // Butang "Masuk" & "Balik"
-  const btnMasuk = document.getElementById('btn-masuk');
-  const btnBalik = document.getElementById('btn-balik');
-
-  btnMasuk.addEventListener('click', handleMasukClick);
-  btnBalik.addEventListener('click', handleBalikClick);
+  document.getElementById('btn-masuk').addEventListener('click', handleMasukClick);
+  document.getElementById('btn-balik').addEventListener('click', handleBalikClick);
 }
 
 /** Set tarikh = hari ini (YYYY-MM-DD) */
 function setDefaultDate() {
   const tarikhInput = document.getElementById('tarikh');
   if (!tarikhInput) return;
-  const today = new Date().toISOString().split('T')[0];
-  tarikhInput.value = today;
+  tarikhInput.value = new Date().toISOString().split('T')[0];
 }
 
 /** Set masa semasa (HH:MM) */
@@ -148,7 +175,6 @@ function fetchTotal() {
     const totalEl = document.getElementById('total');
     if (totalEl) {
       const totalValue = parseFloat(response.total) || 0;
-      // Format jadi "RM 815.30"
       totalEl.textContent = 'RM ' + totalValue.toFixed(2);
     }
   };
@@ -159,14 +185,17 @@ function fetchTotal() {
 }
 
 /**
- * Periksa tarikh hari ini di Apps Script 
- * => Kunci butang Masuk/Balik + isikan input time jika sudah ada
+ * checkSelectedDateStatus(tarikh)
+ *  -> Panggil API utk semak tarikh itu,
+ *  -> Butang "Masuk"/"Balik" di-ENABLE jika tiada rekod,
+ *     di-DISABLE ("Masa telah disetkan") jika ada rekod.
  */
-function checkTodayStatus() {
-  const today = new Date().toISOString().split('T')[0];
+function checkSelectedDateStatus(tarikh) {
+  if (!tarikh) return;
+
   const payload = new URLSearchParams();
-  payload.append('action', 'checkTodayStatus');
-  payload.append('tarikh', today);
+  payload.append('action', 'checkDateStatus');  
+  payload.append('tarikh', tarikh);
 
   fetch(API_URL, {
     method: 'POST',
@@ -175,21 +204,37 @@ function checkTodayStatus() {
   })
     .then(res => res.json())
     .then(result => {
-      if (!result || result.status !== 'Ok') return;
-      // { hasStart, hasEnd, startTime, endTime }
+      if (!result || result.status !== 'Ok') {
+        // Anggap tiada data => user boleh masukkan
+        enableButton('btn-masuk', 'Masuk');
+        enableButton('btn-balik', 'Balik');
+        return;
+      }
+
+      // Tetapkan input waktu
+      const waktuMulaInput = document.getElementById('waktuMula');
+      const waktuTamatInput = document.getElementById('waktuTamat');
 
       if (result.hasStart && result.startTime) {
-        const waktuMulaInput = document.getElementById('waktuMula');
         if (waktuMulaInput) waktuMulaInput.value = result.startTime;
-        disableButton('btn-masuk');
+        disableButton('btn-masuk');  // default text = "Masa telah disetkan"
+      } else {
+        enableButton('btn-masuk', 'Masuk');
       }
+
       if (result.hasEnd && result.endTime) {
-        const waktuTamatInput = document.getElementById('waktuTamat');
         if (waktuTamatInput) waktuTamatInput.value = result.endTime;
         disableButton('btn-balik');
+      } else {
+        enableButton('btn-balik', 'Balik');
       }
     })
-    .catch(err => console.log('checkTodayStatus error:', err));
+    .catch(err => {
+      console.log('checkSelectedDateStatus error:', err);
+      // Assume tarikh tiada data => enable
+      enableButton('btn-masuk', 'Masuk');
+      enableButton('btn-balik', 'Balik');
+    });
 }
 
 /** Borang "Tambah" */
@@ -216,13 +261,14 @@ function handleFormSubmit(e) {
       document.getElementById('data-form').reset();
       setDefaultDate();
       setDefaultTime();
-      // Periksa semula status + refresh total
-      checkTodayStatus();
+      // Semak semula tarikh
+      checkSelectedDateStatus(document.getElementById('tarikh').value);
+      // Refresh total
       fetchTotal();
     })
     .catch(() => {
       showNotification('Berjaya dihantar', 'success');
-      checkTodayStatus();
+      checkSelectedDateStatus(document.getElementById('tarikh').value);
       fetchTotal();
     });
 }
@@ -336,6 +382,7 @@ function populateTable(data) {
   tbody.innerHTML = '';
 
   data.forEach((row, index) => {
+    // row = [tarikh, nama, kategori, waktuMula, waktuTamat, ...]
     const [tarikh, nama, kategori, waktuMula, waktuTamat] = row;
     const tr = document.createElement('tr');
     tr.innerHTML = `
