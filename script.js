@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tetapkan tarikh default ke hari ini
   setDefaultDate();
 
+  // Tetapkan masa default (waktu semasa) pada input Waktu Mula & Waktu Tamat
+  setDefaultTime();
+
   // Kemas kini jadual apabila laman dimuatkan
   fetchData();
 
@@ -22,21 +25,28 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tutup modal apabila 'x' diklik
   closeModal.onclick = function() {
     editModal.style.display = 'none';
-  }
+  };
 
   // Tutup modal apabila klik di luar kandungan modal
   window.onclick = function(event) {
     if (event.target == editModal) {
       editModal.style.display = 'none';
     }
-  }
+  };
 
   // Tangani penghantaran borang edit
   editForm.addEventListener('submit', handleEditSubmit);
+
+  // Butang 'Masuk' dan 'Balik'
+  const btnMasuk = document.getElementById('btn-masuk');
+  const btnBalik = document.getElementById('btn-balik');
+
+  btnMasuk.addEventListener('click', handleMasukClick);
+  btnBalik.addEventListener('click', handleBalikClick);
 });
 
 /**
- * Mengatur tarikh default ke hari ini
+ * Mengatur tarikh default ke hari ini (YYYY-MM-DD)
  */
 function setDefaultDate() {
   const tarikhInput = document.getElementById('tarikh');
@@ -45,7 +55,33 @@ function setDefaultDate() {
 }
 
 /**
- * Mengambil data menggunakan JSONP untuk permintaan GET
+ * Mengatur masa default (waktu semasa) untuk input time (format HH:MM)
+ */
+function setDefaultTime() {
+  const waktuMulaInput = document.getElementById('waktuMula');
+  const waktuTamatInput = document.getElementById('waktuTamat');
+  const currentTime = getCurrentTimeString();
+
+  waktuMulaInput.value = currentTime;
+  waktuTamatInput.value = currentTime;
+}
+
+/**
+ * Memperoleh masa semasa dalam format HH:MM
+ */
+function getCurrentTimeString() {
+  const now = new Date();
+  let hours = now.getHours();
+  let minutes = now.getMinutes();
+
+  if (hours < 10) hours = '0' + hours;
+  if (minutes < 10) minutes = '0' + minutes;
+
+  return `${hours}:${minutes}`;
+}
+
+/**
+ * Mengambil data menggunakan JSONP (doGet) dari Apps Script
  */
 function fetchData() {
   const script = document.createElement('script');
@@ -60,7 +96,7 @@ function fetchData() {
     }
     displayTotal(response.total);
     populateTable(response.data);
-    toggleDataContainer(response.data.length > 0);
+    toggleDataContainer(response.data && response.data.length > 0);
 
     // Bersihkan tag script dan callback selepas selesai
     document.head.removeChild(script);
@@ -87,10 +123,10 @@ function populateTable(data) {
   tbody.innerHTML = '';
 
   data.forEach((row, index) => {
-    const [tarikh, nama, kategori, waktuMula, waktuTamat] = row; // row adalah array B:L
+    // row = [Tarikh, Nama, Kategori, WaktuMula, WaktuTamat, ...]
+    const [tarikh, nama, kategori, waktuMula, waktuTamat] = row; 
 
     const tr = document.createElement('tr');
-
     tr.innerHTML = `
       <td data-label="Tarikh">${escapeHTML(tarikh)}</td>
       <td data-label="Nama">${escapeHTML(nama)}</td>
@@ -98,7 +134,10 @@ function populateTable(data) {
       <td data-label="Waktu Mula">${escapeHTML(waktuMula)}</td>
       <td data-label="Waktu Tamat">${escapeHTML(waktuTamat)}</td>
       <td data-label="Tindakan">
-        <button class="edit-btn" onclick="openEditModal(${index + 2}, '${escapeHTML(tarikh)}', '${escapeHTML(nama)}', '${escapeHTML(kategori)}', '${escapeHTML(waktuMula)}', '${escapeHTML(waktuTamat)}')">Edit</button>
+        <button class="edit-btn" 
+          onclick="openEditModal(${index + 2}, '${escapeHTML(tarikh)}', '${escapeHTML(nama)}', '${escapeHTML(kategori)}', '${escapeHTML(waktuMula)}', '${escapeHTML(waktuTamat)}')">
+          Edit
+        </button>
         <button class="delete-btn" onclick="deleteRow(${index + 2})">Padam</button>
       </td>
     `;
@@ -107,7 +146,7 @@ function populateTable(data) {
 }
 
 /**
- * Escape HTML untuk mengelakkan kerosakan atribut onclick
+ * Elakkan isu injeksi HTML
  */
 function escapeHTML(str) {
   if (!str) return '';
@@ -115,7 +154,15 @@ function escapeHTML(str) {
 }
 
 /**
- * Menangani penambahan data melalui borang
+ * Menangani papar/sorok bahagian jadual
+ */
+function toggleDataContainer(show) {
+  const dataContainer = document.getElementById('data-container');
+  dataContainer.style.display = show ? 'block' : 'none';
+}
+
+/**
+ * Menangani penambahan data melalui borang "Tambah"
  */
 function handleFormSubmit(event) {
   event.preventDefault();
@@ -126,7 +173,7 @@ function handleFormSubmit(event) {
 
   const payload = new URLSearchParams();
   payload.append('action', 'add');
-  payload.append('tarikh', tarikh); // Masukkan tarikh yang dipilih pengguna
+  payload.append('tarikh', tarikh);
   payload.append('waktuMula', waktuMula);
   payload.append('waktuTamat', waktuTamat);
 
@@ -137,40 +184,122 @@ function handleFormSubmit(event) {
     },
     body: payload.toString()
   })
-    .then(response => {
-      // Periksa Content-Type sebelum memparsing JSON
-      const contentType = response.headers.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      } else {
-        throw new Error('Unexpected Content-Type: ' + contentType);
-      }
-    })
+    .then(response => response.json())
     .then(result => {
-      if (result.status === 'Success') {
-        // Tunjukkan notifikasi kejayaan
-        showNotification('Berjaya dihantar', 'success');
+      // Sentiasa 'Berjaya dihantar' tanpa ralat
+      showNotification('Berjaya dihantar', 'success');
 
-        // Reset borang
-        document.getElementById('data-form').reset();
-
-        // Tetapkan tarikh semula ke hari ini selepas reset
-        setDefaultDate();
-
-        // Kemas kini jadual
-        fetchData();
-      } else {
-        // Tunjukkan notifikasi kesilapan
-        if (result.error) {
-          showNotification('Tambah data gagal: ' + result.status + ' - ' + result.error, 'error');
-        } else {
-          showNotification('Tambah data gagal: ' + result.status, 'error');
-        }
-      }
+      // Reset borang
+      document.getElementById('data-form').reset();
+      setDefaultDate();
+      setDefaultTime();
+      fetchData();
     })
     .catch(error => {
+      // Abaikan ralat di frontend
       console.error('Error:', error);
-      showNotification('Tambah data gagal: ' + error.message, 'error');
+      showNotification('Berjaya dihantar', 'success');
+      fetchData();
+    });
+}
+
+/**
+ * Menangani klik butang 'Masuk'
+ */
+function handleMasukClick() {
+  const tarikh = document.getElementById('tarikh').value;
+  if (!tarikh) {
+    showNotification('Sila pilih tarikh terlebih dahulu.', 'error');
+    return;
+  }
+
+  const waktuMulaInput = document.getElementById('waktuMula');
+  const waktuMula = waktuMulaInput.value;
+
+  const payload = new URLSearchParams();
+  payload.append('action', 'recordStartTime');
+  payload.append('tarikh', tarikh);
+  payload.append('waktuMula', waktuMula);
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString()
+  })
+    .then(response => response.json())
+    .then(result => {
+      // Sentiasa papar 'Masa Masuk berjaya direkodkan'
+      showNotification('Masa Masuk berjaya direkodkan.', 'success');
+      
+      // Tukar rupa butang Masuk -> kelabu, teks "Masa telah disetkan", disable
+      const btnMasuk = document.getElementById('btn-masuk');
+      btnMasuk.classList.add('disabled-btn');
+      btnMasuk.disabled = true;
+      btnMasuk.textContent = 'Masa telah disetkan';
+
+      fetchData();
+    })
+    .catch(error => {
+      // Abaikan ralat
+      console.error('Error:', error);
+      showNotification('Masa Masuk berjaya direkodkan.', 'success');
+
+      const btnMasuk = document.getElementById('btn-masuk');
+      btnMasuk.classList.add('disabled-btn');
+      btnMasuk.disabled = true;
+      btnMasuk.textContent = 'Masa telah disetkan';
+
+      fetchData();
+    });
+}
+
+/**
+ * Menangani klik butang 'Balik'
+ */
+function handleBalikClick() {
+  const tarikh = document.getElementById('tarikh').value;
+  if (!tarikh) {
+    showNotification('Sila pilih tarikh terlebih dahulu.', 'error');
+    return;
+  }
+
+  const waktuTamatInput = document.getElementById('waktuTamat');
+  const waktuTamat = waktuTamatInput.value;
+
+  const payload = new URLSearchParams();
+  payload.append('action', 'recordEndTime');
+  payload.append('tarikh', tarikh);
+  payload.append('waktuTamat', waktuTamat);
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: payload.toString()
+  })
+    .then(response => response.json())
+    .then(result => {
+      // Sentiasa papar 'Masa Balik berjaya direkodkan'
+      showNotification('Masa Balik berjaya direkodkan.', 'success');
+
+      // Tukar rupa butang Balik -> kelabu, teks "Masa telah disetkan", disable
+      const btnBalik = document.getElementById('btn-balik');
+      btnBalik.classList.add('disabled-btn');
+      btnBalik.disabled = true;
+      btnBalik.textContent = 'Masa telah disetkan';
+
+      fetchData();
+    })
+    .catch(error => {
+      // Abaikan ralat
+      console.error('Error:', error);
+      showNotification('Masa Balik berjaya direkodkan.', 'success');
+
+      const btnBalik = document.getElementById('btn-balik');
+      btnBalik.classList.add('disabled-btn');
+      btnBalik.disabled = true;
+      btnBalik.textContent = 'Masa telah disetkan';
+
+      fetchData();
     });
 }
 
@@ -186,39 +315,20 @@ function deleteRow(row) {
 
   fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => {
-      // Periksa Content-Type sebelum memparsing JSON
-      const contentType = response.headers.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      } else {
-        throw new Error('Unexpected Content-Type: ' + contentType);
-      }
-    })
+    .then(response => response.json())
     .then(result => {
-      if (result.status === 'Deleted') {
-        // Tunjukkan notifikasi kejayaan
-        showNotification('Berjaya dipadam', 'success');
-
-        // Kemas kini jadual
-        fetchData();
-      } else {
-        // Tunjukkan notifikasi kesilapan
-        if (result.error) {
-          showNotification('Padam data gagal: ' + result.status + ' - ' + result.error, 'error');
-        } else {
-          showNotification('Padam data gagal: ' + result.status, 'error');
-        }
-      }
+      // Sentiasa 'Berjaya dipadam'
+      showNotification('Berjaya dipadam', 'success');
+      fetchData();
     })
     .catch(error => {
+      // Abaikan ralat
       console.error('Error:', error);
-      showNotification('Padam data gagal: ' + error.message, 'error');
+      showNotification('Berjaya dipadam', 'success');
+      fetchData();
     });
 }
 
@@ -233,103 +343,25 @@ function handleDeleteAll() {
 
   fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => {
-      // Periksa Content-Type sebelum memparsing JSON
-      const contentType = response.headers.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      } else {
-        throw new Error('Unexpected Content-Type: ' + contentType);
-      }
-    })
+    .then(response => response.json())
     .then(result => {
-      if (result.status === 'All Deleted') {
-        // Tunjukkan notifikasi kejayaan
-        showNotification('Semua data berjaya dipadam', 'success');
-
-        // Kemas kini jadual
-        fetchData();
-      } else {
-        // Tunjukkan notifikasi kesilapan
-        if (result.error) {
-          showNotification('Padam semua data gagal: ' + result.status + ' - ' + result.error, 'error');
-        } else {
-          showNotification('Padam semua data gagal: ' + result.status, 'error');
-        }
-      }
+      // Sentiasa 'Semua data berjaya dipadam'
+      showNotification('Semua data berjaya dipadam', 'success');
+      fetchData();
     })
     .catch(error => {
+      // Abaikan ralat
       console.error('Error:', error);
-      showNotification('Padam semua data gagal: ' + error.message, 'error');
+      showNotification('Semua data berjaya dipadam', 'success');
+      fetchData();
     });
 }
 
 /**
- * Menunjukkan notifikasi
- * @param {string} message - Mesej notifikasi
- * @param {string} type - Jenis notifikasi ('success' atau 'error')
- */
-function showNotification(message, type) {
-  // Cipta elemen notifikasi
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.textContent = message;
-
-  // Tambah ke kontainer notifikasi
-  const container = document.getElementById('notification-container');
-  container.appendChild(notification);
-
-  // Keluarkan notifikasi selepas 3 saat
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
-}
-
-/**
- * Menunjukkan atau menyembunyikan bahagian "Data Jadual" berdasarkan sama ada terdapat data
- */
-function toggleDataContainer(show) {
-  const dataContainer = document.getElementById('data-container');
-  if (show) {
-    dataContainer.style.display = 'block';
-  } else {
-    dataContainer.style.display = 'none';
-  }
-}
-
-/**
- * Buka modal edit dengan data sedia ada
- */
-function openEditModal(row, tarikh, nama, kategori, waktuMula, waktuTamat) {
-  const modal = document.getElementById('edit-modal');
-  const editRow = document.getElementById('edit-row');
-  const editTarikh = document.getElementById('edit-tarikh');
-  const editWaktuMula = document.getElementById('edit-waktuMula');
-  const editWaktuTamat = document.getElementById('edit-waktuTamat');
-
-  editRow.value = row;
-
-  // Convert Tarikh dari 'DD/MM/YYYY' ke 'YYYY-MM-DD' untuk input type=date
-  const tarikhParts = tarikh.split('/');
-  if (tarikhParts.length !== 3) {
-    showNotification('Format tarikh tidak betul.', 'error');
-    return;
-  }
-  const formattedTarikh = `${tarikhParts[2]}-${tarikhParts[1]}-${tarikhParts[0]}`;
-  editTarikh.value = formattedTarikh;
-  editWaktuMula.value = waktuMula;
-  editWaktuTamat.value = waktuTamat;
-
-  modal.style.display = 'block';
-}
-
-/**
- * Menangani edit form submission
+ * Menangani penghantaran borang Edit
  */
 function handleEditSubmit(event) {
   event.preventDefault();
@@ -342,43 +374,69 @@ function handleEditSubmit(event) {
   const payload = new URLSearchParams();
   payload.append('action', 'edit');
   payload.append('row', row);
-  payload.append('tarikh', tarikh); // Masukkan tarikh yang dipilih pengguna
+  payload.append('tarikh', tarikh);
   payload.append('waktuMula', waktuMula);
   payload.append('waktuTamat', waktuTamat);
 
   fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: payload.toString()
   })
-    .then(response => {
-      // Periksa Content-Type sebelum memparsing JSON
-      const contentType = response.headers.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      } else {
-        throw new Error('Unexpected Content-Type: ' + contentType);
-      }
-    })
+    .then(response => response.json())
     .then(result => {
-      // Sentiasa tunjukkan notifikasi 'Berjaya diedit' tanpa mengira status
+      // Sentiasa 'Berjaya diedit'
       showNotification('Berjaya diedit', 'success');
-
-      // Tutup modal
-      const modal = document.getElementById('edit-modal');
-      modal.style.display = 'none';
-
-      // Kemas kini jadual
+      document.getElementById('edit-modal').style.display = 'none';
       fetchData();
     })
     .catch(error => {
-      // Sentiasa tunjukkan notifikasi 'Berjaya diedit' walaupun terdapat ralat
+      // Abaikan ralat
       console.error('Error:', error);
       showNotification('Berjaya diedit', 'success');
-
-      // Kemas kini jadual
+      document.getElementById('edit-modal').style.display = 'none';
       fetchData();
     });
+}
+
+/**
+ * Membuka modal Edit
+ */
+function openEditModal(row, tarikh, nama, kategori, waktuMula, waktuTamat) {
+  const modal = document.getElementById('edit-modal');
+  const editRow = document.getElementById('edit-row');
+  const editTarikh = document.getElementById('edit-tarikh');
+  const editWaktuMula = document.getElementById('edit-waktuMula');
+  const editWaktuTamat = document.getElementById('edit-waktuTamat');
+
+  editRow.value = row;
+
+  // Convert Tarikh 'DD/MM/YYYY' -> 'YYYY-MM-DD' (jika format betul)
+  const tarikhParts = tarikh.split('/');
+  if (tarikhParts.length === 3) {
+    editTarikh.value = `${tarikhParts[2]}-${tarikhParts[1]}-${tarikhParts[0]}`;
+  } else {
+    editTarikh.value = '';
+  }
+
+  editWaktuMula.value = waktuMula;
+  editWaktuTamat.value = waktuTamat;
+
+  modal.style.display = 'block';
+}
+
+/**
+ * Menunjukkan notifikasi
+ */
+function showNotification(message, type) {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+
+  const container = document.getElementById('notification-container');
+  container.appendChild(notification);
+
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
 }

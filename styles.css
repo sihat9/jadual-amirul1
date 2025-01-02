@@ -66,6 +66,42 @@ section {
   border-radius: 4px;
 }
 
+/* Kumpulan input (input + button) dalam satu baris */
+.input-group {
+  display: flex;
+  align-items: center;
+}
+
+.action-btn {
+  margin-left: 10px;
+  padding: 10px 15px;
+  background-color: #27ae60; /* Hijau */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.9em;
+}
+
+.action-btn:hover {
+  background-color: #1e8449;
+}
+
+.balik-btn {
+  background-color: #2980b9; /* Biru */
+}
+
+.balik-btn:hover {
+  background-color: #1f6391;
+}
+
+/* Kelas tambahan apabila butang dimatikan selepas set masa */
+.disabled-btn {
+  background-color: #7f8c8d !important; /* Kelabu */
+  cursor: not-allowed !important;
+}
+
 button {
   padding: 12px 25px;
   background-color: #2980b9;
@@ -224,6 +260,7 @@ tr:nth-child(even) {
   to { top: 0; opacity: 0; }
 }
 
+/* Responsif */
 @media (max-width: 768px) {
   header h1 {
     font-size: 2em;
@@ -239,6 +276,17 @@ tr:nth-child(even) {
 
   .form-group {
     margin-bottom: 15px;
+  }
+
+  .input-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .action-btn {
+    margin-left: 0;
+    margin-top: 10px;
+    width: 100%;
   }
 
   table, thead, tbody, th, td, tr {

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Jadual Amirul</title>
-  <link rel="stylesheet" href="styles.css">
+  <!-- Pautan ke fail CSS -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
@@ -12,32 +13,49 @@
       <h1>Jadual Amirul</h1>
     </header>
 
+    <!-- Paparan Jumlah Ringgit -->
     <section id="total-container">
       <h2>Jumlah Ringgit: RM <span id="total">0</span></h2>
     </section>
 
+    <!-- Bahagian Borang -->
     <section id="form-container">
       <h2>Masukkan Maklumat</h2>
       <form id="data-form">
+        <!-- Tarikh -->
         <div class="form-group">
           <label for="tarikh">Tarikh:</label>
-          <input type="date" id="tarikh" name="tarikh" required>
+          <input type="date" id="tarikh" name="tarikh" required />
         </div>
 
+        <!-- Waktu Mula + Butang "Masuk" -->
         <div class="form-group">
           <label for="waktuMula">Waktu Mula:</label>
-          <input type="time" id="waktuMula" name="waktuMula" required>
+          <div class="input-group">
+            <input type="time" id="waktuMula" name="waktuMula" required />
+            <button type="button" id="btn-masuk" class="action-btn masuk-btn">
+              Masuk
+            </button>
+          </div>
         </div>
 
+        <!-- Waktu Tamat + Butang "Balik" -->
         <div class="form-group">
           <label for="waktuTamat">Waktu Tamat:</label>
-          <input type="time" id="waktuTamat" name="waktuTamat" required>
+          <div class="input-group">
+            <input type="time" id="waktuTamat" name="waktuTamat" required />
+            <button type="button" id="btn-balik" class="action-btn balik-btn">
+              Balik
+            </button>
+          </div>
         </div>
 
+        <!-- Butang Tambah -->
         <button type="submit">Tambah</button>
       </form>
     </section>
 
+    <!-- Paparan Jadual -->
     <section id="data-container">
       <h2>Data Jadual</h2>
       <table id="data-table">
@@ -59,27 +77,27 @@
     </section>
   </div>
 
-  <!-- Edit Modal -->
+  <!-- Modal Edit -->
   <div id="edit-modal" class="modal">
     <div class="modal-content">
       <span class="close">&times;</span>
       <h2>Edit Maklumat</h2>
       <form id="edit-form">
-        <input type="hidden" id="edit-row" name="row">
+        <input type="hidden" id="edit-row" name="row" />
 
         <div class="form-group">
           <label for="edit-tarikh">Tarikh:</label>
-          <input type="date" id="edit-tarikh" name="tarikh" required>
+          <input type="date" id="edit-tarikh" name="tarikh" required />
         </div>
 
         <div class="form-group">
           <label for="edit-waktuMula">Waktu Mula:</label>
-          <input type="time" id="edit-waktuMula" name="waktuMula" required>
+          <input type="time" id="edit-waktuMula" name="waktuMula" required />
         </div>
 
         <div class="form-group">
           <label for="edit-waktuTamat">Waktu Tamat:</label>
-          <input type="time" id="edit-waktuTamat" name="waktuTamat" required>
+          <input type="time" id="edit-waktuTamat" name="waktuTamat" required />
         </div>
 
         <button type="submit">Simpan Perubahan</button>
@@ -87,9 +105,10 @@
     </div>
   </div>
 
-  <!-- Notifikasi -->
+  <!-- Kontainer Notifikasi -->
   <div id="notification-container"></div>
 
+  <!-- Pautan ke fail JavaScript -->
   <script src="script.js"></script>
 </body>
 </html>
