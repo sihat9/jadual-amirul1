@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Jadual Amirul - Utama</title>
+  <!-- Pautan ke fail CSS -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -29,10 +30,6 @@
     </header>
 
     <!-- Paparan Jumlah Ringgit -->
-    <!-- Ubah suai bahagian ini:
-         Letakkan "Jumlah Ringgit:" di HTML,
-         sementara "RM" + nilai dua perpuluhan
-         akan diisi oleh JavaScript. -->
     <section id="total-container">
       <h2>Total: <span id="total"></span></h2>
     </section>
@@ -44,6 +41,7 @@
         <!-- Tarikh -->
         <div class="form-group">
           <label for="tarikh">Tarikh:</label>
+          <!-- Akan diisi tarikh tempatan oleh setDefaultDate() -->
           <input type="date" id="tarikh" name="tarikh" required />
         </div>
 
@@ -74,7 +72,7 @@
       </form>
     </section>
 
-    <!-- Pautan ke "halaman rekod" -->
+    <!-- Pautan ke halaman rekod -->
     <section>
       <a href="rekod.html" class="link-btn">Lihat Rekod</a>
     </section>
@@ -86,7 +84,7 @@
   <!-- Pautan ke fail JavaScript -->
   <script src="script.js"></script>
   <script>
-    // Panggil initIndexPage() apabila DOMContentLoaded
+    // Selepas DOMContentLoaded, panggil initIndexPage()
     document.addEventListener('DOMContentLoaded', initIndexPage);
   </script>
 </body>

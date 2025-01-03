@@ -99,28 +99,28 @@ function initIndexPage() {
   const mainContainer = document.getElementById('main-container');
   if (!mainContainer) return;
 
-  // Dapatkan butang & set disabled = true (lalai) dgn teks "Sedang dimuat..."
+  // Dapatkan butang "Masuk" & "Balik" --> disabled awal (teks "Sedang dimuat...")
   disableButton('btn-masuk', 'Sedang dimuat...');
   disableButton('btn-balik', 'Sedang dimuat...');
 
-  // Set tarikh & masa default
+  // Set tarikh semasa & masa semasa
   setDefaultDate();
   setDefaultTime();
 
-  // Ambil jumlah ringgit (fetchTotal)
+  // Ambil jumlah ringgit
   fetchTotal();
 
   // Semak tarikh semasa
   const tarikhInput = document.getElementById('tarikh');
   checkSelectedDateStatus(tarikhInput.value);
 
-  // Apabila user ubah tarikh, semak semula
+  // Apabila user ubah tarikh
   tarikhInput.addEventListener('change', (e) => {
+    // Set masa semasa semula
     setDefaultTime();
-    // Re-disable butang semasa loading data
+    // Re-disable butang semasa loading
     disableButton('btn-masuk', 'Sedang dimuat...');
     disableButton('btn-balik', 'Sedang dimuat...');
-    // Semak tarikh baru
     checkSelectedDateStatus(e.target.value);
   });
 
@@ -133,14 +133,24 @@ function initIndexPage() {
   document.getElementById('btn-balik').addEventListener('click', handleBalikClick);
 }
 
-/** Set tarikh = hari ini (YYYY-MM-DD) */
+/**
+ * Set tarikh = hari ini (Local Time)
+ *  - Menggunakan offset time untuk elak isu zon masa UTC
+ */
 function setDefaultDate() {
   const tarikhInput = document.getElementById('tarikh');
   if (!tarikhInput) return;
-  tarikhInput.value = new Date().toISOString().split('T')[0];
+
+  let now = new Date();
+  // Sesuaikan tarikh agar toISOString() mencerminkan local date
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  // Hasil: "YYYY-MM-DDTHH:mm:ss.sssZ", kita ambil split('T')[0]
+  const localISODate = now.toISOString().split('T')[0];
+
+  tarikhInput.value = localISODate;
 }
 
-/** Set masa semasa (HH:MM) */
+/** Set masa semasa (HH:MM) (Local) */
 function setDefaultTime() {
   const now = new Date();
   let hh = now.getHours();
@@ -194,7 +204,7 @@ function checkSelectedDateStatus(tarikh) {
   if (!tarikh) return;
 
   const payload = new URLSearchParams();
-  payload.append('action', 'checkDateStatus');  
+  payload.append('action', 'checkDateStatus');
   payload.append('tarikh', tarikh);
 
   fetch(API_URL, {
@@ -217,7 +227,7 @@ function checkSelectedDateStatus(tarikh) {
 
       if (result.hasStart && result.startTime) {
         if (waktuMulaInput) waktuMulaInput.value = result.startTime;
-        disableButton('btn-masuk');  // default text = "Masa telah disetkan"
+        disableButton('btn-masuk'); // default text = "Masa telah disetkan"
       } else {
         enableButton('btn-masuk', 'Masuk');
       }
@@ -261,8 +271,10 @@ function handleFormSubmit(e) {
       document.getElementById('data-form').reset();
       setDefaultDate();
       setDefaultTime();
+
       // Semak semula tarikh
       checkSelectedDateStatus(document.getElementById('tarikh').value);
+
       // Refresh total
       fetchTotal();
     })
@@ -382,7 +394,6 @@ function populateTable(data) {
   tbody.innerHTML = '';
 
   data.forEach((row, index) => {
-    // row = [tarikh, nama, kategori, waktuMula, waktuTamat, ...]
     const [tarikh, nama, kategori, waktuMula, waktuTamat] = row;
     const tr = document.createElement('tr');
     tr.innerHTML = `
